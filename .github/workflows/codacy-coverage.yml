@@ -3,16 +3,29 @@ on:
   push:
     branches: ["main"]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   coverage:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-java@v4
+        with:
+          java-version: 21
+          distribution: temurin
+          cache: maven
+
+      - name: Run unit tests with JaCoCo coverage
+        run: |
+          mvn test             org.jacoco:jacoco-maven-plugin:0.8.12:prepare-agent             org.jacoco:jacoco-maven-plugin:0.8.12:report             --batch-mode             -Dmaven.test.failure.ignore=true
+        continue-on-error: true
+
       - name: Upload coverage to Codacy
         uses: codacy/codacy-coverage-reporter-action@v1
+        if: always()
         with:
           project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
-          coverage-reports: ""
-        continue-on-error: true
+          coverage-reports: target/site/jacoco/jacoco.xml
