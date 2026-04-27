@@ -21,11 +21,16 @@ jobs:
       - name: Run unit tests with JaCoCo coverage
         run: |
           mvn org.jacoco:jacoco-maven-plugin:0.8.12:prepare-agent             test             org.jacoco:jacoco-maven-plugin:0.8.12:report             --batch-mode             -Dmaven.test.failure.ignore=true             -DskipITs             -pl core,server-spi,server-spi-private,services             -am
-        continue-on-error: true
+
+      - name: Collect JaCoCo reports
+        id: jacoco
+        run: |
+          reports=$(find . -path '*/target/site/jacoco/jacoco.xml' -type f | paste -sd, -)
+          echo "reports=$reports" >> "$GITHUB_OUTPUT"
 
       - name: Upload coverage to Codacy
         uses: codacy/codacy-coverage-reporter-action@v1
-        if: always()
+        if: ${{ steps.jacoco.outputs.reports != '' }}
         with:
           project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
-          coverage-reports: "**/jacoco.xml"
+          coverage-reports: ${{ steps.jacoco.outputs.reports }}
